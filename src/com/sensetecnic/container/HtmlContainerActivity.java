@@ -130,9 +130,17 @@ public class HtmlContainerActivity extends Activity {
 		case R.id.gotourl:
 			typeUrl();
 			return true;
+		case R.id.testaccel:
+			testaccel();
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
+	}
+	
+	private void testaccel() {
+		Intent intent = new Intent(HtmlContainerActivity.this, Accelerometer.class);
+		startActivity(intent);
 	}
 	
 	private void typeUrl() {
