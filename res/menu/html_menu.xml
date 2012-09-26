@@ -3,4 +3,5 @@
 	<item android:id="@+id/refresh" android:icon="@drawable/ic_menu_refresh" android:title="Refresh" />
 	<item android:id="@+id/gotourl" android:icon="@drawable/ic_menu_goto" android:title = "Go to URL..."/>
 	<item android:id="@+id/testaccel" android:icon="@drawable/ic_menu_accel" android:title = "Test Accel" />
+	<item android:id="@+id/camera" android:icon="@drawable/ic_menu_accel" android:title = "Start Camera" />
 </menu>

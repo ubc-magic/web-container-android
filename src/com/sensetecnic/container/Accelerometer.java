@@ -57,7 +57,21 @@ public class Accelerometer extends Activity implements SensorEventListener {
             final float alpha = (float) 0.8;
             float [] gravity = new float[3];
             float [] linear_accel = new float[3];
+            float [] geomagneticMatrix = new float[3];
+            float [] accelerometerValues = new float[3];
+            boolean sensorReady;
             
+            switch (event.sensor.getType()) {
+            case Sensor.TYPE_ACCELEROMETER:
+                accelerometerValues = event.values.clone();
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                geomagneticMatrix = event.values.clone();
+                sensorReady = true;
+                break;
+            default:
+                break;
+            }   
             
             gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
             gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
@@ -72,16 +86,20 @@ public class Accelerometer extends Activity implements SensorEventListener {
             yacc.setText("Accel Y: " + linear_accel[1]);
             zacc.setText("Accel Z: " + linear_accel[2]);
             
-        	}
-        }
-            
-/*            
-            if (sensor == SensorManager.SENSOR_ORIENTATION) {
+            if (geomagneticMatrix != null  && accelerometerValues != null){
+	        	float[] R = new float[16];
+	        	float[] I = new float[16];
+	            float[] values = new float[3];
+	        	SensorManager.getRotationMatrix(R, null, accelerometerValues, geomagneticMatrix);
+	        	SensorManager.getOrientation(R, values);
+	        	System.out.println("geomagnetic matrix being tested " + accelerometerValues[0] + " " + geomagneticMatrix[0]);
+	            
 	            xorient.setText("Orientation X: " + values[0]);
 	            yorient.setText("Orientation Y: " + values[1]);
 	            zorient.setText("Orientation Z: " + values[2]);
-            }            
-        } */
+            }
+        }
+    }
     
  
     public void onAccuracyChanged(int sensor, int accuracy) {

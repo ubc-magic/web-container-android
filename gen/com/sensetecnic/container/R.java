@@ -17,6 +17,7 @@ public final class R {
         public static final int ic_menu_refresh=0x7f020003;
     }
     public static final class id {
+        public static final int camera=0x7f06000c;
         public static final int gotourl=0x7f06000a;
         public static final int pbLoading=0x7f060001;
         public static final int refresh=0x7f060009;

@@ -4,6 +4,10 @@
 
 package com.sensetecnic.container;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
@@ -12,7 +16,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -37,6 +44,10 @@ public class HtmlContainerActivity extends Activity {
 	private ProgressBar pbLoading;
 
 	public ProgressDialog pd; 
+	public static final int MEDIA_TYPE_IMAGE = 1;
+	private static final int CAPTURE_IMAGE_RQ_CODE = 1;
+	private static final int CHOOSE_IMAGE_RQ_CODE = 2;
+	
 	
 	private static final String OVERRIDE_PREFIX = "sensetecnic://";
 	private static final String DEFAULT_URL = "http://www.google.com";
@@ -133,6 +144,9 @@ public class HtmlContainerActivity extends Activity {
 		case R.id.testaccel:
 			testaccel();
 			return true;
+		case R.id.camera:
+			camerafunction();
+			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -141,6 +155,45 @@ public class HtmlContainerActivity extends Activity {
 	private void testaccel() {
 		Intent intent = new Intent(HtmlContainerActivity.this, Accelerometer.class);
 		startActivity(intent);
+	}
+	
+	private void camerafunction() {
+		File photo;
+		Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+		photo = getOutputMediaFile(MEDIA_TYPE_IMAGE);
+		Uri cameraFileUri = Uri.fromFile(photo); // create a file to save the image
+		intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraFileUri); // set the image file name
+		startActivityForResult(intent, CAPTURE_IMAGE_RQ_CODE);
+	}
+	
+	/** Create a File for saving an image or video */
+	private static File getOutputMediaFile(int type){
+		// To be safe, you should check that the SDCard is mounted
+		// using Environment.getExternalStorageState() before doing this.
+
+		File mediaStorageDir = new File(Environment.getExternalStorageDirectory() + "/meeImages");
+		// This location works best if you want the created images to be shared
+		// between applications and persist after your app has been uninstalled.
+
+		// Create the storage directory if it does not exist
+		if (! mediaStorageDir.exists()){
+			if (! mediaStorageDir.mkdirs()){
+				Log.d("MEE", "Failed to create directory");
+				return null;
+			}
+		}
+
+		// Create a media file name
+		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+		File mediaFile;
+		if (type == MEDIA_TYPE_IMAGE){
+			mediaFile = new File(mediaStorageDir.getPath() + File.separator +
+					"IMG_"+ timeStamp + ".jpg");
+		} else {
+			return null;
+		}
+
+		return mediaFile;
 	}
 	
 	private void typeUrl() {
