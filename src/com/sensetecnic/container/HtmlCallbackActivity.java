@@ -4,17 +4,22 @@
 
 package com.sensetecnic.container;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.StringEntity;
@@ -23,8 +28,12 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+import org.apache.commons.codec.binary.BaseNCodec;
+
+import com.sensetecnic.container.HtmlContainerActivity.ContainerWebChromeClient;
 
 import android.app.Activity;
 import android.app.ProgressDialog;
@@ -41,16 +50,25 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.View.OnTouchListener;
+import android.webkit.WebView;
 
-public class HtmlCallbackActivity extends Activity {
+public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 
-	public static final String URI_PREFIX = "sensetecnic://";
+	public static final String URI_PREFIX = "http://sinfulseven.net/coffeeshop/";
 	public static final String URI_SEPARATOR = "?";
+	public static final String URI_APPLICATION_SEPARATOR = "&";
 	public static final String ABORT_CODE = "!ABORT";
 	public static final String[] MODES = { "scan", "camera", "gallery", "quit", "app", "launch", "gencode", "browser" };
 
+	public static final int idLength = 3;
+	
 	// request codes
 	private static final int SCAN_RQ_CODE = 0;
 	private static final int CAPTURE_IMAGE_RQ_CODE = 1;
@@ -66,13 +84,22 @@ public class HtmlCallbackActivity extends Activity {
 	String name, tag, type, shouldPersist = "0", uploadPhotoUrl, field;
 	private File photo;
 	private long captureTime = 0;
-
+	
+	private boolean inProgress;
+	
+	//initializes webView
+	private WebView webView;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
 		this.setContentView(R.layout.html_callback);
+		webView = (WebView) findViewById(R.id.applicationview);
+		webView.loadUrl(URI_PREFIX);
+		webView.getSettings().setJavaScriptEnabled(true);
+		webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+		webView.setOnTouchListener(this);
 
 		/* null out previous values, if any */
 		photo = null;
@@ -81,6 +108,7 @@ public class HtmlCallbackActivity extends Activity {
 		tag = null;
 		type = null;
 
+		/*
 		Uri data = getIntent().getData(); 
 		if (data != null) { 
 			String requestingUri = data.toString();
@@ -89,8 +117,11 @@ public class HtmlCallbackActivity extends Activity {
 
 			String request = requestingUri.substring(URI_PREFIX.length());
 			int separatorIndex = request.indexOf(URI_SEPARATOR);
+			int requestIndex = request.indexOf(URI_APPLICATION_SEPARATOR);
+			
 
-			String mode = separatorIndex == -1 ? request : request.substring(0, separatorIndex);
+			String mode = separatorIndex == -1 ? request : request.substring(separatorIndex + idLength, request.length()-1);//(0, separatorIndex);
+			System.out.println("Mode = " + mode);
 			if (!isValidMode(mode))
 				return;
 
@@ -104,6 +135,7 @@ public class HtmlCallbackActivity extends Activity {
 				e.printStackTrace();
 			}
 		}
+		*/
 	}
 
 	/**
@@ -113,6 +145,9 @@ public class HtmlCallbackActivity extends Activity {
 	 */
 	public void handleRequest(String mode, List<NameValuePair> parameters) {
 
+		System.out.println("Handle Request Functioned: " + mode);
+		//if (!inProgress)
+		//{
 		if (mode.equals("scan")) {
 			// leech parameters out of request
 			for (NameValuePair pair : parameters) {
@@ -151,10 +186,16 @@ public class HtmlCallbackActivity extends Activity {
 			if (mode.equals("camera")) {
 				captureTime = System.currentTimeMillis();
 				Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+				
+				System.out.println("Starting the Photo Taking");
+				
 				photo = getOutputMediaFile(MEDIA_TYPE_IMAGE);
 				Uri cameraFileUri = Uri.fromFile(photo); // create a file to save the image
 				intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraFileUri); // set the image file name
 				startActivityForResult(intent, CAPTURE_IMAGE_RQ_CODE);
+				
+				System.out.println("Concluding the System Imaging");
+				
 			} else {
 				// we can't know about the photo object yet, because we haven't chosen anything
 				// defer assignment until later
@@ -206,6 +247,7 @@ public class HtmlCallbackActivity extends Activity {
 			}
 			launchBrowser(url);
 		}
+		//inProgress = false;
 	}
 
 	/**
@@ -266,13 +308,19 @@ public class HtmlCallbackActivity extends Activity {
 	 */
 	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
 		// QR code scan complete
+		System.out.println(" Starting onActivity Result");
+		System.out.println("Request Code : " + requestCode);
+		System.out.println("Result Code: " + resultCode);
+		
 		if (requestCode == SCAN_RQ_CODE) {
 			if (resultCode == RESULT_OK) {
 				String contents = intent.getStringExtra("SCAN_RESULT");
-
+				
+				System.out.println("Contents of Scan " + contents);
 				// Scan was successful.  Replace {CODE} with scan results
 				String finalUrl = callbackUrl.replaceAll("\\{code\\}", contents);
-
+				System.out.println("Final URL: " + finalUrl);
+				
 				// Save callback to be refreshed in the caller version of this app
 				SharedPreferences settings = getSharedPreferences("container_prefs", 0);
 				SharedPreferences.Editor editor = settings.edit();
@@ -311,6 +359,9 @@ public class HtmlCallbackActivity extends Activity {
 				finish();
 			}
 		}
+		
+
+		System.out.println(" Finishing onActivity Result");
 	}
 
 
@@ -357,30 +408,62 @@ public class HtmlCallbackActivity extends Activity {
 				image = Bitmap.createBitmap(image, 0, 0, image.getWidth(), image.getHeight(), matrix, true);
 
 				FileOutputStream out = new FileOutputStream(photo);
-				image.compress(CompressFormat.JPEG, 90, out);	
+				
+				ByteArrayOutputStream bao = new ByteArrayOutputStream();
+				image.compress(CompressFormat.JPEG, 90, bao); 	//out);
+				byte [] ba = bao.toByteArray();
+				String ba1=Base64.encodeToString(ba, 0);
+				InputStream is;
+				System.out.println("Ba1: " + ba1);
+				
+				ArrayList<NameValuePair> uploadValuepairs = new ArrayList<NameValuePair>();
+				uploadValuepairs.add(new BasicNameValuePair("image",ba1));
+				
+				try{
+
+					HttpClient httpclient = new DefaultHttpClient();
+					HttpPost httppost = new	HttpPost("http://sinfulseven.net/coffeeshop/server.php");
+					httppost.setEntity(new UrlEncodedFormEntity(uploadValuepairs));
+					HttpResponse response = httpclient.execute(httppost);
+					HttpEntity entity = response.getEntity();
+
+					is = entity.getContent();
+
+					}catch(Exception e){
+
+					Log.e("log_tag", "Error in http connection "+e.toString());
+					}
+				
+				System.out.println("Compress and Upload Task Completed");
 				return true;
 			} catch (Exception e) {
 				return false;
-			}
+			} 
+			
+			
 		}
+	
 		protected void onPostExecute(Boolean result) {
+			System.out.println("On Post Execute");
 			if (result == false)
 				finish();
 
 			if (pd != null)
 				pd.dismiss();
-			pd = ProgressDialog.show(HtmlCallbackActivity.this, "", "Uploading photo...", true);
-			new PostPhotoTask().execute();
+			//pd = ProgressDialog.show(HtmlCallbackActivity.this, "", "Uploading photo...", true);
+			//new PostPhotoTask().execute();
 		}
 	}
 
 
 	// uploads photo we just took to the server, and then finishes up
+	
 	class PostPhotoTask extends AsyncTask<String, Void, String> {
 		protected String doInBackground(String... params) {
 			try {
 				String url = uploadPhotoUrl;
-
+				
+				System.out.println("Photo Url Photo: " + uploadPhotoUrl);
 				MultipartEntity reqEntity = new MultipartEntity();  
 
 				FileBody bin = new FileBody(photo, "image/jpg");
@@ -390,7 +473,8 @@ public class HtmlCallbackActivity extends Activity {
 				reqEntity.addPart("type", new StringBody(type));
 				reqEntity.addPart("upload", new StringBody("Upload"));
 				//reqEntity.addPart("shouldPersist", new StringBody(shouldPersist));
-
+				
+				System.out.println("file body complete" );
 				HttpResponse serverResponse = uploadPhoto(url, reqEntity);
 				return new BasicResponseHandler().handleResponse(serverResponse);
 			} catch (Exception e) {
@@ -502,4 +586,64 @@ public class HtmlCallbackActivity extends Activity {
 		return response;
 	}
 
+	public boolean onTouch(View webView, MotionEvent event) {
+		
+		System.out.println("OnTouch Activiated");
+		Uri data = getIntent().getData(); 
+		Handler handler = new Handler();
+
+		
+		if (data != null) { 
+
+			String requestingUri =  this.webView.getUrl();
+			
+			System.out.println("Request Url: " + requestingUri);
+			
+			if (requestingUri == null)
+				return false;
+
+ 
+			final String request = requestingUri.substring(URI_PREFIX.length());
+			System.out.println("Request:" + request);
+			
+			final int separatorIndex = request.indexOf(URI_SEPARATOR);
+			System.out.println("separator index = " + separatorIndex);
+			
+			int modeIndex = request.indexOf(URI_APPLICATION_SEPARATOR);
+			if (modeIndex == -1)
+				modeIndex=request.length();
+
+			final String mode = separatorIndex == -1 ? request : request.substring(separatorIndex + 4, modeIndex);	//(0, separatorIndex);
+			System.out.println("Mode = " + mode);
+			
+
+				
+				handler.postDelayed(new Runnable()
+				{
+					public void run()
+					{
+						if (isValidMode(mode) && !inProgress)
+						try {
+							inProgress= true;
+						String strEntity = request.substring(separatorIndex+1);
+						
+						System.out.println("String entity: " + strEntity);
+						
+						final StringEntity entity = new StringEntity(strEntity, null);
+							entity.setContentType(URLEncodedUtils.CONTENT_TYPE);
+						List<NameValuePair> parameters = URLEncodedUtils.parse(entity);
+						handleRequest(mode, parameters);
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}, 100);
+
+			
+		}
+		return false;
+	}
+
+	
+	
 }

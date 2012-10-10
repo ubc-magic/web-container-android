@@ -59,15 +59,15 @@ public class Accelerometer extends Activity implements SensorEventListener {
             float [] linear_accel = new float[3];
             float [] geomagneticMatrix = new float[3];
             float [] accelerometerValues = new float[3];
-            boolean sensorReady;
             
             switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
                 accelerometerValues = event.values.clone();
+                System.out.println("getting values for accelerometer field");
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 geomagneticMatrix = event.values.clone();
-                sensorReady = true;
+                System.out.println("getting values for magnetic field");
                 break;
             default:
                 break;

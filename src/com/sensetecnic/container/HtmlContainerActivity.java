@@ -49,13 +49,16 @@ public class HtmlContainerActivity extends Activity {
 	private static final int CHOOSE_IMAGE_RQ_CODE = 2;
 	
 	
-	private static final String OVERRIDE_PREFIX = "sensetecnic://";
-	private static final String DEFAULT_URL = "http://www.google.com";
+	private static final String OVERRIDE_PREFIX = "http://www.sinfulseven.net/coffeeshop";
+	private static final String DEFAULT_URL = "http://google.ca/";
+	
 	
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		System.out.println(DEFAULT_URL);
+		System.out.println("-------------STARTING-------------");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.html_challenge);
 		pbLoading = (ProgressBar)findViewById(R.id.pbLoading);
@@ -68,13 +71,16 @@ public class HtmlContainerActivity extends Activity {
 
 			@Override
 			public boolean shouldOverrideUrlLoading(WebView view, String url) {
+				System.out.println("Test this url: " + url);
 				if (url.startsWith(OVERRIDE_PREFIX)) {
+					System.out.println("Starting the override Prefix");
 					Intent intent = new Intent(HtmlContainerActivity.this, HtmlCallbackActivity.class);
 					intent.setData(Uri.parse(url));
 					startActivity(intent);
 					return true;
 				} 
 				else if (url.startsWith("http://www.youtube.com")) {
+					System.out.println("Going to Youtube:");
 					Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(url)); startActivity(i);
 					return true;
 				} else if (url.startsWith("http://www.facebook.com")) {
@@ -93,7 +99,8 @@ public class HtmlContainerActivity extends Activity {
 					justPlayedMedia = true;
 					return true;
 				}
-
+				
+				System.out.println("Ordinary URL: " + url);
 				// ordinary link
 				return false;
 			}
@@ -119,6 +126,7 @@ public class HtmlContainerActivity extends Activity {
 
 		} else {
 			// load default url
+			System.out.println("Webview loading: " + url);
 			webView.loadUrl(DEFAULT_URL);
 		}
 
@@ -144,9 +152,9 @@ public class HtmlContainerActivity extends Activity {
 		case R.id.testaccel:
 			testaccel();
 			return true;
-		case R.id.camera:
-			camerafunction();
-			return true;
+	//	case R.id.camera:
+	//		camerafunction();
+	//		return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -156,7 +164,7 @@ public class HtmlContainerActivity extends Activity {
 		Intent intent = new Intent(HtmlContainerActivity.this, Accelerometer.class);
 		startActivity(intent);
 	}
-	
+	/*
 	private void camerafunction() {
 		File photo;
 		Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -166,7 +174,7 @@ public class HtmlContainerActivity extends Activity {
 		startActivityForResult(intent, CAPTURE_IMAGE_RQ_CODE);
 	}
 	
-	/** Create a File for saving an image or video */
+	// /** Create a File for saving an image or video 
 	private static File getOutputMediaFile(int type){
 		// To be safe, you should check that the SDCard is mounted
 		// using Environment.getExternalStorageState() before doing this.
@@ -195,13 +203,14 @@ public class HtmlContainerActivity extends Activity {
 
 		return mediaFile;
 	}
+	*/
 	
 	private void typeUrl() {
 		final AlertDialog.Builder alert = new AlertDialog.Builder(this);
 		final EditText input = new EditText(this);
 		final LinearLayout layout = new LinearLayout(this);
 		final TextView instructions = new TextView(this);
-		input.setText("http://");
+		input.setText("http://www.sinfulseven.net/coffeeshop");
 		input.setInputType(InputType.TYPE_TEXT_VARIATION_URI);
 		layout.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
 		input.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT, 1f));

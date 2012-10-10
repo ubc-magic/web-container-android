@@ -7,5 +7,6 @@
 	<classpathentry kind="lib" path="lib/httpmime-4.0.1.jar"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="gen"/>
+	<classpathentry kind="lib" path="C:/Users/Gab/Documents/GitHub/web-container-android/lib/commons-codec-1.7.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
