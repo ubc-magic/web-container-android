@@ -49,8 +49,8 @@ public class HtmlContainerActivity extends Activity {
 	private static final int CHOOSE_IMAGE_RQ_CODE = 2;
 	
 	
-	private static final String OVERRIDE_PREFIX = "http://www.sinfulseven.net/coffeeshop";
-	private static final String DEFAULT_URL = "http://google.ca/";
+	private static final String OVERRIDE_PREFIX = "http://www.sinfulseven.net/coffeeshop/";
+	private static final String DEFAULT_URL = "http://sinfulseven.net/coffeeshop";
 	
 	
 
@@ -59,6 +59,7 @@ public class HtmlContainerActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		System.out.println(DEFAULT_URL);
 		System.out.println("-------------STARTING-------------");
+		
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.html_challenge);
 		pbLoading = (ProgressBar)findViewById(R.id.pbLoading);

@@ -29,12 +29,9 @@ import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.apache.commons.codec.binary.BaseNCodec;
-
-import com.sensetecnic.container.HtmlContainerActivity.ContainerWebChromeClient;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.ComponentName;
@@ -59,9 +56,9 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.webkit.WebView;
 
-public class HtmlCallbackActivity extends Activity implements OnTouchListener{
+public class HtmlCallbackActivity extends Activity{ // implements OnTouchListener{
 
-	public static final String URI_PREFIX = "http://sinfulseven.net/coffeeshop/";
+	public static final String URI_PREFIX = "http://www.sinfulseven.net/coffeeshop/";
 	public static final String URI_SEPARATOR = "?";
 	public static final String URI_APPLICATION_SEPARATOR = "&";
 	public static final String ABORT_CODE = "!ABORT";
@@ -85,22 +82,20 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 	private File photo;
 	private long captureTime = 0;
 	
-	private boolean inProgress;
+	//private boolean inProgress;
 	
 	//initializes webView
-	private WebView webView;
+	//private WebView webView;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
 		this.setContentView(R.layout.html_callback);
-		webView = (WebView) findViewById(R.id.applicationview);
-		webView.loadUrl(URI_PREFIX);
-		webView.getSettings().setJavaScriptEnabled(true);
-		webView.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
-		webView.setOnTouchListener(this);
 
+		System.out.println("Created");
+
+		MultipartEntity reqEntity = new MultipartEntity();  
 		/* null out previous values, if any */
 		photo = null;
 		callbackUrl = null;
@@ -108,7 +103,7 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 		tag = null;
 		type = null;
 
-		/*
+		
 		Uri data = getIntent().getData(); 
 		if (data != null) { 
 			String requestingUri = data.toString();
@@ -120,7 +115,7 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 			int requestIndex = request.indexOf(URI_APPLICATION_SEPARATOR);
 			
 
-			String mode = separatorIndex == -1 ? request : request.substring(separatorIndex + idLength, request.length()-1);//(0, separatorIndex);
+			String mode = separatorIndex == -1 ? request : request.substring(0, separatorIndex); 	//(separatorIndex + idLength, request.length()-1);//(0, separatorIndex);
 			System.out.println("Mode = " + mode);
 			if (!isValidMode(mode))
 				return;
@@ -135,7 +130,11 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 				e.printStackTrace();
 			}
 		}
-		*/
+		else {
+			System.out.println("Intent data is null");
+		}
+		System.out.println(data.toString());
+		
 	}
 
 	/**
@@ -159,7 +158,7 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 
 			// ready to scan
 			Intent intent = new Intent("com.google.zxing.client.android.SCAN");
-			intent.putExtra("SCAN_MODE", "QR_CODE_MODE");
+			intent.putExtra("com.google.zxing.client.android.SCAN.SCAN_MODE", "QR_CODE_MODE");
 			startActivityForResult(intent, SCAN_RQ_CODE);
 
 		} else if (mode.equals("camera") || mode.equals("gallery")) {
@@ -196,11 +195,14 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 				
 				System.out.println("Concluding the System Imaging");
 				
-			} else {
+			}
+			 else {
 				// we can't know about the photo object yet, because we haven't chosen anything
 				// defer assignment until later
+				// can be used to retreive a gallery image
 				Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
 				intent.setType("image/*");
+				//startActivityForResult(Intent.createChooser(intent, "Select file to upload "), CHOOSE_IMAGE_RQ_CODE);
 				startActivityForResult(intent, CHOOSE_IMAGE_RQ_CODE);
 			}
 		} else if (mode.equals("quit")) {
@@ -318,7 +320,7 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 				
 				System.out.println("Contents of Scan " + contents);
 				// Scan was successful.  Replace {CODE} with scan results
-				String finalUrl = callbackUrl.replaceAll("\\{code\\}", contents);
+				String finalUrl = contents;//callbackUrl.replaceAll("{//code//}", contents);
 				System.out.println("Final URL: " + finalUrl);
 				
 				// Save callback to be refreshed in the caller version of this app
@@ -410,7 +412,9 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 				FileOutputStream out = new FileOutputStream(photo);
 				
 				ByteArrayOutputStream bao = new ByteArrayOutputStream();
-				image.compress(CompressFormat.JPEG, 90, bao); 	//out);
+				image.compress(CompressFormat.JPEG,  90,  out);
+
+/*				image.compress(CompressFormat.JPEG, 90, bao); 	//out);
 				byte [] ba = bao.toByteArray();
 				String ba1=Base64.encodeToString(ba, 0);
 				InputStream is;
@@ -434,6 +438,7 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 					Log.e("log_tag", "Error in http connection "+e.toString());
 					}
 				
+*/
 				System.out.println("Compress and Upload Task Completed");
 				return true;
 			} catch (Exception e) {
@@ -450,8 +455,8 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 
 			if (pd != null)
 				pd.dismiss();
-			//pd = ProgressDialog.show(HtmlCallbackActivity.this, "", "Uploading photo...", true);
-			//new PostPhotoTask().execute();
+			pd = ProgressDialog.show(HtmlCallbackActivity.this, "", "Uploading photo...", true);
+			new PostPhotoTask().execute();
 		}
 	}
 
@@ -463,18 +468,28 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 			try {
 				String url = uploadPhotoUrl;
 				
+				//test Test
+				//url = "http://sinfulseven.net/coffeeshop/multipart.php";
+				
 				System.out.println("Photo Url Photo: " + uploadPhotoUrl);
 				MultipartEntity reqEntity = new MultipartEntity();  
-
+				
+				field = "userfile";
+				System.out.println("field = userfile");
 				FileBody bin = new FileBody(photo, "image/jpg");
 				reqEntity.addPart(field, bin);
+				System.out.println("assign field in bin");
 				//reqEntity.addPart("name", new StringBody(name));
 				//reqEntity.addPart("tag", new StringBody(tag));
+				
 				reqEntity.addPart("type", new StringBody(type));
-				reqEntity.addPart("upload", new StringBody("Upload"));
+				System.out.println("add type as a field");
+				//reqEntity.addPart("upload", new StringBody("Upload"));
+				
 				//reqEntity.addPart("shouldPersist", new StringBody(shouldPersist));
 				
 				System.out.println("file body complete" );
+				System.out.println("File Entity: " + reqEntity.toString());
 				HttpResponse serverResponse = uploadPhoto(url, reqEntity);
 				return new BasicResponseHandler().handleResponse(serverResponse);
 			} catch (Exception e) {
@@ -509,6 +524,14 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 				finish();
 			}
 		}
+		
+		void postJsonDetails (String result) throws JSONException{
+			JSONObject uploadData= new JSONObject();
+			uploadData.put(result, "photoURL");
+			
+			
+		}
+		
 	}
 
 
@@ -568,7 +591,7 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 		DefaultHttpClient httpclient = new DefaultHttpClient();  
 		HttpPost httppost = new HttpPost(url);
 		HttpResponse response = null;
-
+		System.out.println("Attempting to upload the Multipart Entity");
 		try {  
 			if (reqEntity != null)
 				httppost.setEntity(reqEntity);
@@ -576,6 +599,7 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 			// Execute HTTP Post Request  
 			response = httpclient.execute(httppost);
 			System.out.println("***** RESPONSE: "+response.getStatusLine().toString());
+			System.out.println("Response is: " + response.getStatusLine().toString());
 
 		} catch (ClientProtocolException e) {  
 			e.printStackTrace(System.out);
@@ -584,64 +608,6 @@ public class HtmlCallbackActivity extends Activity implements OnTouchListener{
 		}
 
 		return response;
-	}
-
-	public boolean onTouch(View webView, MotionEvent event) {
-		
-		System.out.println("OnTouch Activiated");
-		Uri data = getIntent().getData(); 
-		Handler handler = new Handler();
-
-		
-		if (data != null) { 
-
-			String requestingUri =  this.webView.getUrl();
-			
-			System.out.println("Request Url: " + requestingUri);
-			
-			if (requestingUri == null)
-				return false;
-
- 
-			final String request = requestingUri.substring(URI_PREFIX.length());
-			System.out.println("Request:" + request);
-			
-			final int separatorIndex = request.indexOf(URI_SEPARATOR);
-			System.out.println("separator index = " + separatorIndex);
-			
-			int modeIndex = request.indexOf(URI_APPLICATION_SEPARATOR);
-			if (modeIndex == -1)
-				modeIndex=request.length();
-
-			final String mode = separatorIndex == -1 ? request : request.substring(separatorIndex + 4, modeIndex);	//(0, separatorIndex);
-			System.out.println("Mode = " + mode);
-			
-
-				
-				handler.postDelayed(new Runnable()
-				{
-					public void run()
-					{
-						if (isValidMode(mode) && !inProgress)
-						try {
-							inProgress= true;
-						String strEntity = request.substring(separatorIndex+1);
-						
-						System.out.println("String entity: " + strEntity);
-						
-						final StringEntity entity = new StringEntity(strEntity, null);
-							entity.setContentType(URLEncodedUtils.CONTENT_TYPE);
-						List<NameValuePair> parameters = URLEncodedUtils.parse(entity);
-						handleRequest(mode, parameters);
-						} catch (Exception e) {
-							e.printStackTrace();
-						}
-					}
-				}, 100);
-
-			
-		}
-		return false;
 	}
 
 	
