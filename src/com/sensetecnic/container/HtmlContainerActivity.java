@@ -39,6 +39,7 @@ public class HtmlContainerActivity extends Activity {
 
 	private WebView webView;
 	private String callbackUrl;
+	private String uploadDimensions;
 	private String currentUrl;
 	private boolean justPlayedMedia = false;
 	private ProgressBar pbLoading;
@@ -109,6 +110,9 @@ public class HtmlContainerActivity extends Activity {
 		});
 
 		String url = getIntent().getStringExtra("url");
+		String result = getIntent().getStringExtra("result");
+		System.out.println ("Result for the common page is" + result);
+		
 		currentUrl = url;
 
 		if (url != null) {
@@ -165,46 +169,7 @@ public class HtmlContainerActivity extends Activity {
 		Intent intent = new Intent(HtmlContainerActivity.this, Accelerometer.class);
 		startActivity(intent);
 	}
-	/*
-	private void camerafunction() {
-		File photo;
-		Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-		photo = getOutputMediaFile(MEDIA_TYPE_IMAGE);
-		Uri cameraFileUri = Uri.fromFile(photo); // create a file to save the image
-		intent.putExtra(MediaStore.EXTRA_OUTPUT, cameraFileUri); // set the image file name
-		startActivityForResult(intent, CAPTURE_IMAGE_RQ_CODE);
-	}
-	
-	// /** Create a File for saving an image or video 
-	private static File getOutputMediaFile(int type){
-		// To be safe, you should check that the SDCard is mounted
-		// using Environment.getExternalStorageState() before doing this.
 
-		File mediaStorageDir = new File(Environment.getExternalStorageDirectory() + "/meeImages");
-		// This location works best if you want the created images to be shared
-		// between applications and persist after your app has been uninstalled.
-
-		// Create the storage directory if it does not exist
-		if (! mediaStorageDir.exists()){
-			if (! mediaStorageDir.mkdirs()){
-				Log.d("MEE", "Failed to create directory");
-				return null;
-			}
-		}
-
-		// Create a media file name
-		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-		File mediaFile;
-		if (type == MEDIA_TYPE_IMAGE){
-			mediaFile = new File(mediaStorageDir.getPath() + File.separator +
-					"IMG_"+ timeStamp + ".jpg");
-		} else {
-			return null;
-		}
-
-		return mediaFile;
-	}
-	*/
 	
 	private void typeUrl() {
 		final AlertDialog.Builder alert = new AlertDialog.Builder(this);
@@ -249,15 +214,21 @@ public class HtmlContainerActivity extends Activity {
 		// because it wants us to refresh the page or quit.
 		SharedPreferences settings = getSharedPreferences("container_prefs", 0);
 		callbackUrl = settings.getString("callbackUrl", "");
+		uploadDimensions = settings.getString("uploadDimensions", "");
+		
+		System.out.println("callbackURL is: " + callbackUrl);
+		System.out.println("upload dimensions are " + uploadDimensions);
 		boolean shouldQuit = settings.getBoolean("quitChallenge", false);
 
 		// now clear the preferences again so that we don't refresh ourselves/quit if suspended by some other
 		// activity
 		SharedPreferences.Editor editor = settings.edit();
+		editor.putString("uploadDimensions", "");
 		editor.putString("callbackUrl", "");
 		editor.putBoolean("quitChallenge", false);
 		editor.commit();
 
+		
 		if (shouldQuit) {
 			doLeaveChallengeConfirmation();
 		}
@@ -273,6 +244,9 @@ public class HtmlContainerActivity extends Activity {
 				currentUrl = callbackUrl;
 			}
 		} 
+		else if (uploadDimensions != null && !uploadDimensions.equals("")){
+			webView.loadUrl("javascript:gotImage('"+uploadDimensions+"');");
+		}
 
 	}
 

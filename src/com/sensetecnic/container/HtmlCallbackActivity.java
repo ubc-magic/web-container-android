@@ -320,7 +320,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				
 				System.out.println("Contents of Scan " + contents);
 				// Scan was successful.  Replace {CODE} with scan results
-				String finalUrl = contents;//callbackUrl.replaceAll("{//code//}", contents);
+				String finalUrl = contents;//callbackUrl.replaceAll("\\{code\\}", contents);
 				System.out.println("Final URL: " + finalUrl);
 				
 				// Save callback to be refreshed in the caller version of this app
@@ -414,31 +414,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				ByteArrayOutputStream bao = new ByteArrayOutputStream();
 				image.compress(CompressFormat.JPEG,  90,  out);
 
-/*				image.compress(CompressFormat.JPEG, 90, bao); 	//out);
-				byte [] ba = bao.toByteArray();
-				String ba1=Base64.encodeToString(ba, 0);
-				InputStream is;
-				System.out.println("Ba1: " + ba1);
-				
-				ArrayList<NameValuePair> uploadValuepairs = new ArrayList<NameValuePair>();
-				uploadValuepairs.add(new BasicNameValuePair("image",ba1));
-				
-				try{
 
-					HttpClient httpclient = new DefaultHttpClient();
-					HttpPost httppost = new	HttpPost("http://sinfulseven.net/coffeeshop/server.php");
-					httppost.setEntity(new UrlEncodedFormEntity(uploadValuepairs));
-					HttpResponse response = httpclient.execute(httppost);
-					HttpEntity entity = response.getEntity();
-
-					is = entity.getContent();
-
-					}catch(Exception e){
-
-					Log.e("log_tag", "Error in http connection "+e.toString());
-					}
-				
-*/
 				System.out.println("Compress and Upload Task Completed");
 				return true;
 			} catch (Exception e) {
@@ -468,8 +444,6 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 			try {
 				String url = uploadPhotoUrl;
 				
-				//test Test
-				//url = "http://sinfulseven.net/coffeeshop/multipart.php";
 				
 				System.out.println("Photo Url Photo: " + uploadPhotoUrl);
 				MultipartEntity reqEntity = new MultipartEntity();  
@@ -502,8 +476,17 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 
 			if (result == null)
 				finish();
-
+			
 			System.out.println("Uploaded to " + uploadPhotoUrl + " with response " + result);
+			SharedPreferences settings1 = getSharedPreferences("container_prefs", 0);
+			SharedPreferences.Editor editor1 = settings1.edit();
+			editor1.putString("uploadDimensions", result);
+			System.out.println("upload dimensions should be" + result);
+			editor1.commit();
+
+			// start async task to post QR code activity
+			//new QRCodeActivityTask().execute(contents, "I scanned a QR code!");
+			finish();
 			
 			try {
 				JSONObject data = (JSONObject) new JSONTokener(result).nextValue();
@@ -515,6 +498,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				SharedPreferences settings = getSharedPreferences("container_prefs", 0);
 				SharedPreferences.Editor editor = settings.edit();
 				editor.putString("callbackUrl", finalUrl);
+				//editor.putString("uploadDimensions", result);
 
 				// Commit the edits!
 				editor.commit();
