@@ -478,11 +478,18 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				finish();
 			
 			System.out.println("Uploaded to " + uploadPhotoUrl + " with response " + result);
-			SharedPreferences settings1 = getSharedPreferences("container_prefs", 0);
-			SharedPreferences.Editor editor1 = settings1.edit();
-			editor1.putString("uploadDimensions", result);
-			System.out.println("upload dimensions should be" + result);
-			editor1.commit();
+			
+			//Passes the result of the upload back out of the callbackactivity
+			Intent callbackactivity = getIntent();
+			callbackactivity.putExtra("uploadResult", result);
+			setResult(RESULT_OK, callbackactivity);
+			
+			
+			//SharedPreferences settings1 = getSharedPreferences("container_prefs", 0);
+			//SharedPreferences.Editor editor1 = settings1.edit();
+			//editor1.putString("uploadDimensions", result);
+			//System.out.println("upload dimensions should be" + result);
+			//editor1.commit();
 
 			// start async task to post QR code activity
 			//new QRCodeActivityTask().execute(contents, "I scanned a QR code!");
@@ -512,8 +519,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 		void postJsonDetails (String result) throws JSONException{
 			JSONObject uploadData= new JSONObject();
 			uploadData.put(result, "photoURL");
-			
-			
+
 		}
 		
 	}

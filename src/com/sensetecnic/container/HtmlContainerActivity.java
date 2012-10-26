@@ -40,6 +40,7 @@ public class HtmlContainerActivity extends Activity {
 	private WebView webView;
 	private String callbackUrl;
 	private String uploadDimensions;
+	private String uploadDimensionsTest;
 	private String currentUrl;
 	private boolean justPlayedMedia = false;
 	private ProgressBar pbLoading;
@@ -78,7 +79,7 @@ public class HtmlContainerActivity extends Activity {
 					System.out.println("Starting the override Prefix");
 					Intent intent = new Intent(HtmlContainerActivity.this, HtmlCallbackActivity.class);
 					intent.setData(Uri.parse(url));
-					startActivity(intent);
+					startActivityForResult(intent, 1);
 					return true;
 				} 
 				else if (url.startsWith("http://www.youtube.com")) {
@@ -214,16 +215,17 @@ public class HtmlContainerActivity extends Activity {
 		// because it wants us to refresh the page or quit.
 		SharedPreferences settings = getSharedPreferences("container_prefs", 0);
 		callbackUrl = settings.getString("callbackUrl", "");
-		uploadDimensions = settings.getString("uploadDimensions", "");
+		//uploadDimensions = settings.getString("uploadDimensions", "");
+		
 		
 		System.out.println("callbackURL is: " + callbackUrl);
-		System.out.println("upload dimensions are " + uploadDimensions);
+		//System.out.println("upload dimensions are " + uploadDimensions);
 		boolean shouldQuit = settings.getBoolean("quitChallenge", false);
 
 		// now clear the preferences again so that we don't refresh ourselves/quit if suspended by some other
 		// activity
 		SharedPreferences.Editor editor = settings.edit();
-		editor.putString("uploadDimensions", "");
+		//editor.putString("uploadDimensions", "");
 		editor.putString("callbackUrl", "");
 		editor.putBoolean("quitChallenge", false);
 		editor.commit();
@@ -244,9 +246,9 @@ public class HtmlContainerActivity extends Activity {
 				currentUrl = callbackUrl;
 			}
 		} 
-		else if (uploadDimensions != null && !uploadDimensions.equals("")){
-			webView.loadUrl("javascript:gotImage('"+uploadDimensions+"');");
-		}
+//		else if (uploadDimensions != null && !uploadDimensions.equals("")){
+//			webView.loadUrl("javascript:gotImage('"+uploadDimensions+"');");
+//		}
 
 	}
 
@@ -277,7 +279,18 @@ public class HtmlContainerActivity extends Activity {
 	}
 
 
-
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		if (resultCode == RESULT_OK)
+		{
+			uploadDimensionsTest=data.getStringExtra("uploadResult");
+			System.out.println("Upload Dimension Test" + uploadDimensionsTest);
+			if (uploadDimensionsTest != null && !uploadDimensionsTest.equals("")){
+				webView.loadUrl("javascript:gotImage('"+uploadDimensionsTest+"');");
+			}
+		}
+	}
 
 	/**
 	 * Custom web chrome client so that we can grant geolocation privileges automatically and display alerts if they come up
