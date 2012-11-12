@@ -62,7 +62,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 	public static final String URI_SEPARATOR = "?";
 	public static final String URI_APPLICATION_SEPARATOR = "&";
 	public static final String ABORT_CODE = "!ABORT";
-	public static final String[] MODES = { "scan", "camera", "gallery", "quit", "app", "launch", "gencode", "browser" };
+	public static final String[] MODES = { "scan", "camera", "gallery", "uploadfile", "nfc", "quit", "app", "launch", "gencode", "browser" };
 
 	public static final int idLength = 3;
 	
@@ -70,6 +70,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 	private static final int SCAN_RQ_CODE = 0;
 	private static final int CAPTURE_IMAGE_RQ_CODE = 1;
 	private static final int CHOOSE_IMAGE_RQ_CODE = 2;
+	private static final int FILE_UPLOAD_CODE = 3;
 
 	// progress dialog
 	private ProgressDialog pd;
@@ -81,6 +82,9 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 	String name, tag, type, shouldPersist = "0", uploadPhotoUrl, field;
 	private File photo;
 	private long captureTime = 0;
+	
+	// request params - File uploading
+	private File uploadFile;
 	
 	//private boolean inProgress;
 	
@@ -175,7 +179,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				else if (pair.getName().equals("persist"))
 					shouldPersist = pair.getValue();
 				else if (pair.getName().equals("upload_url"))
-					uploadPhotoUrl = pair.getValue();
+					uploadPhotoUrl = pair.getValue();					
 				else if (pair.getName().equals("field"))
 					field = pair.getValue();
 				// ignore other parameters as irrelevant for this mode
@@ -205,7 +209,40 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				//startActivityForResult(Intent.createChooser(intent, "Select file to upload "), CHOOSE_IMAGE_RQ_CODE);
 				startActivityForResult(intent, CHOOSE_IMAGE_RQ_CODE);
 			}
-		} else if (mode.equals("quit")) {
+		} else if (mode.equals("uploadfile"))
+		{
+			System.out.println("Starting the file browser");
+			
+			for (NameValuePair pair : parameters) {
+				if (pair.getName().equals("ret")) 
+					callbackUrl = pair.getValue();
+				else if (pair.getName().equals("name")) 
+					name = pair.getValue();
+				else if (pair.getName().equals("tag"))
+					tag = pair.getValue();
+				else if (pair.getName().equals("type"))
+					type = pair.getValue();
+				else if (pair.getName().equals("persist"))
+					shouldPersist = pair.getValue();
+				else if (pair.getName().equals("upload_url"))
+					uploadPhotoUrl = pair.getValue();
+				else if (pair.getName().equals("field"))
+					field = pair.getValue();
+				// ignore other parameters as irrelevant for this mode
+			}
+			// ready to upload
+			Intent intent = new Intent("com.nexes.manager.LAUNCH");
+			//intent.putExtra("com.google.zxing.client.android.SCAN.SCAN_MODE", "QR_CODE_MODE");
+			startActivityForResult(intent, FILE_UPLOAD_CODE);
+			
+			
+		}
+		else if (mode.equals("nfc")) {
+			Intent intent = new Intent(HtmlCallbackActivity.this, NFCOperation.class);
+			startActivity(intent);
+		}
+		
+		else if (mode.equals("quit")) {
 			// Save a flag to preferences that the HtmlChallengeActivity should finish.
 			SharedPreferences settings = getSharedPreferences("container_prefs", 0);
 			SharedPreferences.Editor editor = settings.edit();
@@ -361,6 +398,16 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				finish();
 			}
 		}
+		else if (requestCode == FILE_UPLOAD_CODE)
+		{
+			if(resultCode == RESULT_OK) {
+				String resultstring = intent.getStringExtra("filepath");
+				System.out.println("Result string: " + resultstring);
+				photo= new File (resultstring);
+				pd = ProgressDialog.show(this, "", 	"Uploading File ...", true);
+				new PostPhotoTask().execute();
+			}
+		}
 		
 
 		System.out.println(" Finishing onActivity Result");
@@ -450,7 +497,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				
 				field = "userfile";
 				System.out.println("field = userfile");
-				FileBody bin = new FileBody(photo, "image/jpg");
+				FileBody bin = new FileBody(photo); // "image/jpg");
 				reqEntity.addPart(field, bin);
 				System.out.println("assign field in bin");
 				//reqEntity.addPart("name", new StringBody(name));
@@ -516,11 +563,6 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 			}
 		}
 		
-		void postJsonDetails (String result) throws JSONException{
-			JSONObject uploadData= new JSONObject();
-			uploadData.put(result, "photoURL");
-
-		}
 		
 	}
 
@@ -600,6 +642,5 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 		return response;
 	}
 
-	
 	
 }

@@ -4,14 +4,21 @@
     android:versionCode="1"
     android:versionName="1.0" >
 
-    <uses-sdk android:minSdkVersion="8" />
+    <!--  NFC uses a base SDK version of "10" -->
+    <uses-sdk android:minSdkVersion="10"/>
     
     <uses-permission android:name="android.permission.INTERNET" />
 	<uses-permission android:name="android.permission.CAMERA" />
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+	
+	<!--  Below adds NFC the project, remove or comment these lines if there is no NFC in the project -->
+	<uses-permission android:name="android.permission.NFC" />
+	<!--  <uses-feature android:name="android.hardware.nfc" android:required="true" /> -->
+	
 
+	
     <application android:icon="@drawable/ic_launcher" android:configChanges="orientation"
         android:label="@string/app_name" android:theme="@android:style/Theme.NoTitleBar">
         <activity android:name=".HtmlContainerActivity" android:label="@string/app_name" >
@@ -28,8 +35,10 @@
 				<category android:name="android.intent.category.BROWSABLE" />
 				<data android:scheme="sensetecnic" />
 			</intent-filter>
+			
 		</activity>
 		
+
         <activity android:name=".Accelerometer" android:configChanges="orientation|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -38,7 +47,34 @@
                 <data android:scheme="sensetecnic" />
             </intent-filter>
         </activity>
+        
+        <activity android:name=".NFCOperation" android:configChanges="orientation|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sensetecnic" />
+            </intent-filter>
             
+          	<!--  NFC Action if NFC is  start application intent -->
+			<intent-filter>
+			    <action android:name="android.nfc.action.NDEF_DISCOVERED"/>
+			    <category android:name="android.intent.category.DEFAULT"/>
+			    <data android:mimeType="text/plain" />
+			</intent-filter>
+        </activity>
+        
+         <activity android:name="com.nexes.manager.Main" android:configChanges="orientation|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+   			<intent-filter>
+				<action android:name="com.nexes.manager.LAUNCH" />
+				<category android:name="android.intent.category.DEFAULT" />
+			</intent-filter>
+        </activity>
+        
 		<activity android:name="com.google.zxing.client.android.HelpActivity"
 			android:screenOrientation="landscape" android:configChanges="orientation|keyboardHidden"
 			android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
