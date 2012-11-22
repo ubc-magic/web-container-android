@@ -3,5 +3,7 @@
 
     <string name="hello">Hello World, WebContainerActivity!</string>
     <string name="app_name">STS Web Container</string>
+    <string name="write_to_tag">Write to Tag</string>
+    <string name="default_note_text">Edit me!</string>
 
 </resources>

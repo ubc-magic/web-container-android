@@ -56,13 +56,13 @@ import android.view.View;
 import android.view.View.OnTouchListener;
 import android.webkit.WebView;
 
-public class HtmlCallbackActivity extends Activity{ // implements OnTouchListener{
+public class HtmlCallbackActivity extends Activity{ 
 
 	public static final String URI_PREFIX = "http://www.sinfulseven.net/coffeeshop/";
 	public static final String URI_SEPARATOR = "?";
 	public static final String URI_APPLICATION_SEPARATOR = "&";
 	public static final String ABORT_CODE = "!ABORT";
-	public static final String[] MODES = { "scan", "camera", "gallery", "uploadfile", "nfc", "quit", "app", "launch", "gencode", "browser" };
+	public static final String[] MODES = { "scan", "camera", "gallery", "uploadfile", "nfc", "accel", "quit", "app", "launch", "gencode", "browser" };
 
 	public static final int idLength = 3;
 	
@@ -71,6 +71,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 	private static final int CAPTURE_IMAGE_RQ_CODE = 1;
 	private static final int CHOOSE_IMAGE_RQ_CODE = 2;
 	private static final int FILE_UPLOAD_CODE = 3;
+	private static final int NFC_TRANSFER_CODE = 4;
 
 	// progress dialog
 	private ProgressDialog pd;
@@ -85,6 +86,12 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 	
 	// request params - File uploading
 	private File uploadFile;
+	
+	// request params - nfc
+	private String message;
+	
+	// request params - accelerometer rate
+	private double accel_rate;
 	
 	//private boolean inProgress;
 	
@@ -106,6 +113,10 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 		name = null;
 		tag = null;
 		type = null;
+		uploadFile = null;
+		message = null;
+		accel_rate = 0;
+		
 
 		
 		Uri data = getIntent().getData(); 
@@ -119,7 +130,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 			int requestIndex = request.indexOf(URI_APPLICATION_SEPARATOR);
 			
 
-			String mode = separatorIndex == -1 ? request : request.substring(0, separatorIndex); 	//(separatorIndex + idLength, request.length()-1);//(0, separatorIndex);
+			String mode = separatorIndex == -1 ? request : request.substring(0, separatorIndex);
 			System.out.println("Mode = " + mode);
 			if (!isValidMode(mode))
 				return;
@@ -163,7 +174,9 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 			// ready to scan
 			Intent intent = new Intent("com.google.zxing.client.android.SCAN");
 			intent.putExtra("com.google.zxing.client.android.SCAN.SCAN_MODE", "QR_CODE_MODE");
+			System.out.println("Ready to scan qr code");
 			startActivityForResult(intent, SCAN_RQ_CODE);
+			System.out.println("Scanning this");
 
 		} else if (mode.equals("camera") || mode.equals("gallery")) {
 			// leech parameters out of request
@@ -206,7 +219,6 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				// can be used to retreive a gallery image
 				Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
 				intent.setType("image/*");
-				//startActivityForResult(Intent.createChooser(intent, "Select file to upload "), CHOOSE_IMAGE_RQ_CODE);
 				startActivityForResult(intent, CHOOSE_IMAGE_RQ_CODE);
 			}
 		} else if (mode.equals("uploadfile"))
@@ -232,14 +244,43 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 			}
 			// ready to upload
 			Intent intent = new Intent("com.nexes.manager.LAUNCH");
-			//intent.putExtra("com.google.zxing.client.android.SCAN.SCAN_MODE", "QR_CODE_MODE");
 			startActivityForResult(intent, FILE_UPLOAD_CODE);
 			
 			
 		}
 		else if (mode.equals("nfc")) {
+			for (NameValuePair pair : parameters) {
+				if (pair.getName().equals("message"))
+				{
+					message = pair.getValue();
+				}
+						
+			}
 			Intent intent = new Intent(HtmlCallbackActivity.this, NFCOperation.class);
-			startActivity(intent);
+			intent.putExtra("ndefmessage", message);
+			startActivityForResult(intent, NFC_TRANSFER_CODE);
+		}
+		
+		else if (mode.equals("accel")) {
+			for (NameValuePair pair : parameters) {
+				if (pair.getName().equals("frequency"))
+				{
+					String accel_temp = pair.getValue();
+					accel_rate = Double.parseDouble(accel_temp);
+				}
+			}
+			
+			Intent accel_callbackactivity = getIntent();
+			accel_callbackactivity.putExtra("accel_rate", accel_rate);
+			accel_callbackactivity.putExtra("method", "accel");
+			
+			System.out.println("Set the intent call back actiity values");
+			
+			setResult(RESULT_OK, accel_callbackactivity);
+			System.out.println("SetResult OK");
+			
+			finish();
+			
 		}
 		
 		else if (mode.equals("quit")) {
@@ -338,6 +379,11 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 		startActivity(intent);
 		finish();
 	}
+	@Override
+	public void onResume()
+	{
+		super.onResume();
+	}
 
 
 
@@ -346,6 +392,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 	 * Called when QR code scanning or photo taking is complete.
 	 */
 	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+		System.out.println("why are we not here yet");
 		// QR code scan complete
 		System.out.println(" Starting onActivity Result");
 		System.out.println("Request Code : " + requestCode);
@@ -355,7 +402,7 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 			if (resultCode == RESULT_OK) {
 				String contents = intent.getStringExtra("SCAN_RESULT");
 				
-				System.out.println("Contents of Scan " + contents);
+				//System.out.println("Contents of Scan " + contents);
 				// Scan was successful.  Replace {CODE} with scan results
 				String finalUrl = contents;//callbackUrl.replaceAll("\\{code\\}", contents);
 				System.out.println("Final URL: " + finalUrl);
@@ -367,7 +414,10 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 
 				// Commit the edits!
 				editor.commit();
-
+				Intent qr_callbackactivity = getIntent();
+				qr_callbackactivity.putExtra("method", "qr");
+				qr_callbackactivity.putExtra("qr_result", contents);
+				setResult(RESULT_OK, qr_callbackactivity);
 				// start async task to post QR code activity
 				//new QRCodeActivityTask().execute(contents, "I scanned a QR code!");
 				finish();
@@ -406,6 +456,20 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 				photo= new File (resultstring);
 				pd = ProgressDialog.show(this, "", 	"Uploading File ...", true);
 				new PostPhotoTask().execute();
+			}
+		}
+		
+		else if (requestCode == NFC_TRANSFER_CODE)
+		{
+			if(resultCode == RESULT_OK) {
+				String resultstring = intent.getStringExtra("nfc_value");
+				System.out.println("NFC result String: " + resultstring);
+				Intent nfc_callbackactivity = getIntent();
+				nfc_callbackactivity.putExtra("uploadResult", resultstring);
+				nfc_callbackactivity.putExtra("method", "nfc");
+				setResult(RESULT_OK, nfc_callbackactivity);
+				
+				finish();
 			}
 		}
 		
@@ -529,17 +593,10 @@ public class HtmlCallbackActivity extends Activity{ // implements OnTouchListene
 			//Passes the result of the upload back out of the callbackactivity
 			Intent callbackactivity = getIntent();
 			callbackactivity.putExtra("uploadResult", result);
+			callbackactivity.putExtra("method", "upload");
 			setResult(RESULT_OK, callbackactivity);
 			
 			
-			//SharedPreferences settings1 = getSharedPreferences("container_prefs", 0);
-			//SharedPreferences.Editor editor1 = settings1.edit();
-			//editor1.putString("uploadDimensions", result);
-			//System.out.println("upload dimensions should be" + result);
-			//editor1.commit();
-
-			// start async task to post QR code activity
-			//new QRCodeActivityTask().execute(contents, "I scanned a QR code!");
 			finish();
 			
 			try {

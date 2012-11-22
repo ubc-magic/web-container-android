@@ -6,14 +6,24 @@ package com.sensetecnic.container;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.json.JSONArray;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -33,15 +43,20 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.LinearLayout.LayoutParams;
 
-public class HtmlContainerActivity extends Activity {
+public class HtmlContainerActivity extends Activity implements SensorEventListener {
 
 	private WebView webView;
 	private String callbackUrl;
 	private String uploadDimensions;
 	private String uploadDimensionsTest;
+	private String nfc_upload;
 	private String currentUrl;
+	private double accelerometer_rate;
+	private boolean accelerometer_enabled = false;
+	
 	private boolean justPlayedMedia = false;
 	private ProgressBar pbLoading;
 
@@ -49,6 +64,17 @@ public class HtmlContainerActivity extends Activity {
 	public static final int MEDIA_TYPE_IMAGE = 1;
 	private static final int CAPTURE_IMAGE_RQ_CODE = 1;
 	private static final int CHOOSE_IMAGE_RQ_CODE = 2;
+	
+	
+	// Sensor management for accelerometer data
+	private SensorManager sm;
+	private Sensor accelerometers;
+	private float [] linear_accel = new float[3];
+	
+	// For uploading accelerometer data periodically
+	TimerTask uploadAccelTask;
+	Timer uploadAccel;
+	
 	
 	
 	private static final String OVERRIDE_PREFIX = "http://www.sinfulseven.net/coffeeshop/";
@@ -61,6 +87,10 @@ public class HtmlContainerActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		System.out.println(DEFAULT_URL);
 		System.out.println("-------------STARTING-------------");
+		
+		// Initialize Sensor management information 
+		sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometers = sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.html_challenge);
@@ -76,6 +106,7 @@ public class HtmlContainerActivity extends Activity {
 			public boolean shouldOverrideUrlLoading(WebView view, String url) {
 				System.out.println("Test this url: " + url);
 				if (url.startsWith(OVERRIDE_PREFIX)) {
+					cancelAccelUpload();
 					System.out.println("Starting the override Prefix");
 					Intent intent = new Intent(HtmlContainerActivity.this, HtmlCallbackActivity.class);
 					intent.setData(Uri.parse(url));
@@ -158,9 +189,6 @@ public class HtmlContainerActivity extends Activity {
 		case R.id.testaccel:
 			testaccel();
 			return true;
-	//	case R.id.camera:
-	//		camerafunction();
-	//		return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -210,26 +238,30 @@ public class HtmlContainerActivity extends Activity {
 			return;
 		}
 
+		sm.registerListener(this, accelerometers,SensorManager.SENSOR_DELAY_NORMAL);
+		
 		// load callback URL from preferences, if it exists, and whether the user has requested a quit.  
 		// These preferences will only exist if, while we were suspended, our sub-launched self wrote the preferences 
 		// because it wants us to refresh the page or quit.
 		SharedPreferences settings = getSharedPreferences("container_prefs", 0);
 		callbackUrl = settings.getString("callbackUrl", "");
-		//uploadDimensions = settings.getString("uploadDimensions", "");
 		
+		nfc_upload = settings.getString("nfc_retrieved_message", "");
+		System.out.println("nfc_upload : " + nfc_upload);
 		
 		System.out.println("callbackURL is: " + callbackUrl);
-		//System.out.println("upload dimensions are " + uploadDimensions);
 		boolean shouldQuit = settings.getBoolean("quitChallenge", false);
 
 		// now clear the preferences again so that we don't refresh ourselves/quit if suspended by some other
 		// activity
 		SharedPreferences.Editor editor = settings.edit();
-		//editor.putString("uploadDimensions", "");
 		editor.putString("callbackUrl", "");
+		editor.putString("nfc_retrieved_message", "");
 		editor.putBoolean("quitChallenge", false);
 		editor.commit();
 
+
+		
 		
 		if (shouldQuit) {
 			doLeaveChallengeConfirmation();
@@ -245,7 +277,10 @@ public class HtmlContainerActivity extends Activity {
 				webView.loadUrl(callbackUrl);
 				currentUrl = callbackUrl;
 			}
-		} 
+		}
+		else if (nfc_upload != null && !nfc_upload.equals("")) {
+			webView.loadUrl("javascript:gotNFC('"+nfc_upload+"');");
+		}
 //		else if (uploadDimensions != null && !uploadDimensions.equals("")){
 //			webView.loadUrl("javascript:gotImage('"+uploadDimensions+"');");
 //		}
@@ -261,7 +296,15 @@ public class HtmlContainerActivity extends Activity {
 		else {
 			doLeaveChallengeConfirmation();
 		}
+		cancelAccelUpload();
 	}
+
+    @Override
+    protected void onStop() {
+        sm.unregisterListener(this);
+        cancelAccelUpload();
+        super.onStop();
+    }
 
 
 	/**
@@ -271,6 +314,20 @@ public class HtmlContainerActivity extends Activity {
 		webView.reload();
 	}
 
+	private void startAccelUpload()
+	{
+		uploadAccel = new Timer();
+		uploadAccel.schedule(new SendAccelerometerData(), (long)(1.0/accelerometer_rate * 1000), (long)(1.0/accelerometer_rate* 1000));
+	}
+	
+	private void cancelAccelUpload()
+	{
+		if (accelerometer_enabled)
+		{
+		uploadAccel.cancel();
+		}
+	}
+	
 	/**
 	 * Handle leaving the challenge via the back button or the menu option.
 	 */
@@ -282,14 +339,38 @@ public class HtmlContainerActivity extends Activity {
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
+		System.out.println("On Activity Result");
 		if (resultCode == RESULT_OK)
 		{
-			uploadDimensionsTest=data.getStringExtra("uploadResult");
-			System.out.println("Upload Dimension Test" + uploadDimensionsTest);
-			if (uploadDimensionsTest != null && !uploadDimensionsTest.equals("")){
-				webView.loadUrl("javascript:gotImage('"+uploadDimensionsTest+"');");
+			if (data.getStringExtra("method").equals("nfc"))
+			{
+				nfc_upload = data.getStringExtra("uploadResult");
+				System.out.println("NFC upload result: " + nfc_upload);
+				if (nfc_upload != null && !nfc_upload.equals("")) {
+					webView.loadUrl("javascript:gotNFC('"+nfc_upload+"');");
+				}
+					
+			}
+			else if (data.getStringExtra("method").equals("accel"))
+			{
+				System.out.println("ACCEL");
+				accelerometer_rate = data.getDoubleExtra("accel_rate", 5.0);
+				accelerometer_enabled = true;
+				startAccelUpload();
+				System.out.println("start accel Upload");
+			}
+			else if (data.getStringExtra("method").equals("upload"))
+			{
+				System.out.println("Upload this shit now");
+				uploadDimensionsTest=data.getStringExtra("uploadResult");
+				System.out.println("Upload Dimension Test" + uploadDimensionsTest);
+				if (uploadDimensionsTest != null && !uploadDimensionsTest.equals("")){
+					webView.loadUrl("javascript:gotImage('"+uploadDimensionsTest+"');");
+				}
+				System.out.println("uploadDimesnions passed over" );
 			}
 		}
+		System.out.println("Onactivityresult complete");
 	}
 
 	/**
@@ -324,5 +405,50 @@ public class HtmlContainerActivity extends Activity {
 
 	}
 
+
+	private class SendAccelerometerData extends TimerTask {
+
+		@Override
+		public void run() {
+			String accelerometer_value = null;
+			accelerometer_value = "{ \"x\": \"" + linear_accel[0] + "\",\"y\": \"" + linear_accel[1] + "\", \"z\": \"" + linear_accel[2] + "\" }";
+//			JSONArray json_accelerometer_value = new JSONArray(Arrays.asList(linear_accel));
+//			accelerometer_value = json_accelerometer_value.toString();
+			System.out.println ("Accelerometer values are: " + accelerometer_value);
+			
+			if (linear_accel == null )
+			{
+	            System.out.println("No Accelerometer Data found.");
+				uploadAccel.cancel();
+			}
+			else{
+			webView.loadUrl("javascript:updateAccelData('"+accelerometer_value+"');");
+			}
+		}
+		
+	}
+
+	public void onAccuracyChanged(Sensor arg0, int arg1) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void onSensorChanged(SensorEvent event) {
+		synchronized (this) {
+            final float alpha = (float) 0.8;
+            float [] gravity = new float[3];
+            
+
+            gravity[0] = alpha * gravity[0] + (1 - alpha) * event.values[0];
+            gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1];
+            gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2];
+            linear_accel[0] = event.values[0] - gravity[0];
+            linear_accel[1] = event.values[1] - gravity[1];
+            linear_accel[2] = event.values[2] - gravity[2];
+            
+            
+		}
+		
+	}
 
 }

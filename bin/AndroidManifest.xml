@@ -56,19 +56,15 @@
                 <data android:scheme="sensetecnic" />
             </intent-filter>
             
-          	<!--  NFC Action if NFC is  start application intent -->
+          	<!--  NFC Action if NFC is  start application intent -->	
 			<intent-filter>
-			    <action android:name="android.nfc.action.NDEF_DISCOVERED"/>
-			    <category android:name="android.intent.category.DEFAULT"/>
-			    <data android:mimeType="text/plain" />
+			    <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+			    <category android:name="android.intent.category.DEFAULT" />
+			    <data android:mimeType="application/com.sensetecnic.container.NFCOperation" />
 			</intent-filter>
         </activity>
         
          <activity android:name="com.nexes.manager.Main" android:configChanges="orientation|keyboardHidden">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
    			<intent-filter>
 				<action android:name="com.nexes.manager.LAUNCH" />
 				<category android:name="android.intent.category.DEFAULT" />
