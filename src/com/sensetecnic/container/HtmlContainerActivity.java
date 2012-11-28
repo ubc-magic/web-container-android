@@ -53,7 +53,9 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 	private String uploadDimensions;
 	private String uploadDimensionsTest;
 	private String nfc_upload;
+	private String qr_upload;
 	private String currentUrl;
+	private String player;
 	private double accelerometer_rate;
 	private boolean accelerometer_enabled = false;
 	
@@ -192,6 +194,10 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 		default:
 			return super.onOptionsItemSelected(item);
 		}
+	}
+	
+	protected void onSaveinstanceState(Bundle outState) {
+		webView.saveState(outState);
 	}
 	
 	private void testaccel() {
@@ -351,11 +357,21 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 				}
 					
 			}
+			else if (data.getStringExtra("method").equals("qr"))
+			{
+				System.out.println("QR value");
+				qr_upload=data.getStringExtra("qr_result");
+				if (qr_upload != null && !qr_upload.equals("")) {
+					webView.loadUrl("javascript:gotQR('"+qr_upload+"');");
+				}
+				
+			}
 			else if (data.getStringExtra("method").equals("accel"))
 			{
 				System.out.println("ACCEL");
 				accelerometer_rate = data.getDoubleExtra("accel_rate", 5.0);
 				accelerometer_enabled = true;
+				player = data.getStringExtra("playernumber");
 				startAccelUpload();
 				System.out.println("start accel Upload");
 			}
@@ -411,7 +427,7 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 		@Override
 		public void run() {
 			String accelerometer_value = null;
-			accelerometer_value = "{ \"x\": \"" + linear_accel[0] + "\",\"y\": \"" + linear_accel[1] + "\", \"z\": \"" + linear_accel[2] + "\" }";
+			accelerometer_value = "{ \"x\": \"" + linear_accel[0] + "\",\"y\": \"" + linear_accel[1] + "\", \"z\": \"" + linear_accel[2] + "\", \"player\": \"" + player + "\" }";
 //			JSONArray json_accelerometer_value = new JSONArray(Arrays.asList(linear_accel));
 //			accelerometer_value = json_accelerometer_value.toString();
 			System.out.println ("Accelerometer values are: " + accelerometer_value);

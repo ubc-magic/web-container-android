@@ -9,6 +9,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,6 +25,7 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
@@ -92,6 +95,7 @@ public class HtmlCallbackActivity extends Activity{
 	
 	// request params - accelerometer rate
 	private double accel_rate;
+	private String player_number;
 	
 	//private boolean inProgress;
 	
@@ -116,6 +120,7 @@ public class HtmlCallbackActivity extends Activity{
 		uploadFile = null;
 		message = null;
 		accel_rate = 0;
+		player_number = "0";
 		
 
 		
@@ -195,6 +200,8 @@ public class HtmlCallbackActivity extends Activity{
 					uploadPhotoUrl = pair.getValue();					
 				else if (pair.getName().equals("field"))
 					field = pair.getValue();
+				else if (pair.getName().equals("player"))
+					player_number = pair.getValue();
 				// ignore other parameters as irrelevant for this mode
 			}		
 
@@ -239,7 +246,9 @@ public class HtmlCallbackActivity extends Activity{
 				else if (pair.getName().equals("upload_url"))
 					uploadPhotoUrl = pair.getValue();
 				else if (pair.getName().equals("field"))
-					field = pair.getValue();
+					field = pair.getValue();				
+				else if (pair.getName().equals("player"))
+						player_number = pair.getValue();
 				// ignore other parameters as irrelevant for this mode
 			}
 			// ready to upload
@@ -254,6 +263,8 @@ public class HtmlCallbackActivity extends Activity{
 				{
 					message = pair.getValue();
 				}
+				else if (pair.getName().equals("player"))
+					player_number = pair.getValue();
 						
 			}
 			Intent intent = new Intent(HtmlCallbackActivity.this, NFCOperation.class);
@@ -268,11 +279,14 @@ public class HtmlCallbackActivity extends Activity{
 					String accel_temp = pair.getValue();
 					accel_rate = Double.parseDouble(accel_temp);
 				}
+				else if (pair.getName().equals("player"))
+					player_number = pair.getValue();
 			}
 			
 			Intent accel_callbackactivity = getIntent();
 			accel_callbackactivity.putExtra("accel_rate", accel_rate);
 			accel_callbackactivity.putExtra("method", "accel");
+			accel_callbackactivity.putExtra("playernumber", player_number);
 			
 			System.out.println("Set the intent call back actiity values");
 			
@@ -404,24 +418,29 @@ public class HtmlCallbackActivity extends Activity{
 				
 				//System.out.println("Contents of Scan " + contents);
 				// Scan was successful.  Replace {CODE} with scan results
-				String finalUrl = contents;//callbackUrl.replaceAll("\\{code\\}", contents);
-				System.out.println("Final URL: " + finalUrl);
-				
-				// Save callback to be refreshed in the caller version of this app
-				SharedPreferences settings = getSharedPreferences("container_prefs", 0);
-				SharedPreferences.Editor editor = settings.edit();
-				editor.putString("callbackUrl", finalUrl);
-
-				// Commit the edits!
-				editor.commit();
-				Intent qr_callbackactivity = getIntent();
-				qr_callbackactivity.putExtra("method", "qr");
-				qr_callbackactivity.putExtra("qr_result", contents);
-				setResult(RESULT_OK, qr_callbackactivity);
-				// start async task to post QR code activity
-				//new QRCodeActivityTask().execute(contents, "I scanned a QR code!");
-				finish();
-				
+				if (contents.startsWith("http://"))
+					{
+					String finalUrl = contents;
+					System.out.println("Final URL: " + finalUrl);
+					
+					// Save callback to be refreshed in the caller version of this app
+					SharedPreferences settings = getSharedPreferences("container_prefs", 0);
+					SharedPreferences.Editor editor = settings.edit();
+					editor.putString("callbackUrl", finalUrl);
+	
+					// Commit the edits!
+					editor.commit(); 
+					}
+				else {
+					Intent qr_callbackactivity = getIntent();
+					qr_callbackactivity.putExtra("method", "qr");
+					qr_callbackactivity.putExtra("qr_result", contents);
+					qr_callbackactivity.putExtra("playernumber", player_number);
+					setResult(RESULT_OK, qr_callbackactivity);
+					// start async task to post QR code activity
+					//new QRCodeActivityTask().execute(contents, "I scanned a QR code!");
+					finish();
+					}
 			} else {
 				// Canceled, use abort code
 				SharedPreferences settings = getSharedPreferences("container_prefs", 0);
@@ -467,6 +486,7 @@ public class HtmlCallbackActivity extends Activity{
 				Intent nfc_callbackactivity = getIntent();
 				nfc_callbackactivity.putExtra("uploadResult", resultstring);
 				nfc_callbackactivity.putExtra("method", "nfc");
+				nfc_callbackactivity.putExtra("playernumber", player_number);
 				setResult(RESULT_OK, nfc_callbackactivity);
 				
 				finish();
@@ -560,15 +580,23 @@ public class HtmlCallbackActivity extends Activity{
 				MultipartEntity reqEntity = new MultipartEntity();  
 				
 				field = "userfile";
+				
 				System.out.println("field = userfile");
 				FileBody bin = new FileBody(photo); // "image/jpg");
+
+				
+				//System.out.println("player string: " + playerstring.toString());
 				reqEntity.addPart(field, bin);
 				System.out.println("assign field in bin");
+				reqEntity.addPart("player", new StringBody(player_number));
+
+				//System.out.println("trying to add player number");
 				//reqEntity.addPart("name", new StringBody(name));
 				//reqEntity.addPart("tag", new StringBody(tag));
 				
-				reqEntity.addPart("type", new StringBody(type));
-				System.out.println("add type as a field");
+				//reqEntity.addPart("type", new StringBody(type));
+				//System.out.println("add type as a field");
+				
 				//reqEntity.addPart("upload", new StringBody("Upload"));
 				
 				//reqEntity.addPart("shouldPersist", new StringBody(shouldPersist));
@@ -594,6 +622,7 @@ public class HtmlCallbackActivity extends Activity{
 			Intent callbackactivity = getIntent();
 			callbackactivity.putExtra("uploadResult", result);
 			callbackactivity.putExtra("method", "upload");
+			callbackactivity.putExtra("playernumber", player_number);
 			setResult(RESULT_OK, callbackactivity);
 			
 			
