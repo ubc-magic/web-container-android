@@ -80,8 +80,6 @@ public class NFCOperation extends Activity {
 		Intent intent = getIntent();
 		String data = intent.getStringExtra("ndefmessage");
 		
-		data = "harro123";
-		
 		System.out.println("Input message to tag " + data);
 		NdefRecord [] mimeRecord = {null};
 		// mime data type string
