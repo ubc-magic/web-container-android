@@ -8,10 +8,17 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import org.json.JSONArray;
+
+import br.ufscar.dc.thingbroker.interfaces.ThingBrokerRequestListener;
+import br.ufscar.dc.thingbroker.model.Event;
+import br.ufscar.dc.thingbroker.services.EventService;
+import br.ufscar.dc.thingbroker.services.impl.EventServiceImpl;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -46,7 +53,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.LinearLayout.LayoutParams;
 
-public class HtmlContainerActivity extends Activity implements SensorEventListener {
+public class HtmlContainerActivity extends Activity implements ThingBrokerRequestListener, SensorEventListener  {
 
 	private WebView webView;
 	private String callbackUrl;
@@ -66,6 +73,9 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 	public static final int MEDIA_TYPE_IMAGE = 1;
 	private static final int CAPTURE_IMAGE_RQ_CODE = 1;
 	private static final int CHOOSE_IMAGE_RQ_CODE = 2;
+	
+	// Constant codes for the ThingBroker event recognition
+	public static final int STANDARD_MESSAGE = 1;
 	
 	
 	// Sensor management for accelerometer data
@@ -188,9 +198,6 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 		case R.id.gotourl:
 			typeUrl();
 			return true;
-		case R.id.testaccel:
-			testaccel();
-			return true;
 		default:
 			return super.onOptionsItemSelected(item);
 		}
@@ -200,10 +207,6 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 		webView.saveState(outState);
 	}
 	
-	private void testaccel() {
-		Intent intent = new Intent(HtmlContainerActivity.this, Accelerometer.class);
-		startActivity(intent);
-	}
 
 	
 	private void typeUrl() {
@@ -266,8 +269,11 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 		editor.putBoolean("quitChallenge", false);
 		editor.commit();
 
-
-		
+		EventService service = new EventServiceImpl("kimberly.magic.ubc.ca","8080" , null, false);
+		Event event = new Event();
+		event.setThingId("picturenscan1");
+		Map<String,String> gameInfo = new HashMap<String, String>();
+	
 		
 		if (shouldQuit) {
 			doLeaveChallengeConfirmation();
@@ -286,6 +292,13 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 		}
 		else if (nfc_upload != null && !nfc_upload.equals("")) {
 			webView.loadUrl("javascript:gotNFC('"+nfc_upload+"');");
+			
+			gameInfo.put("type", "nfcResult");
+			gameInfo.put("player", player);
+			gameInfo.put("value", nfc_upload);
+			event.setInfo(gameInfo);
+			service.postEvent(STANDARD_MESSAGE, this, event, true);
+			
 		}
 //		else if (uploadDimensions != null && !uploadDimensions.equals("")){
 //			webView.loadUrl("javascript:gotImage('"+uploadDimensions+"');");
@@ -345,6 +358,12 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 	@Override
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
+		
+		EventService service = new EventServiceImpl("kimberly.magic.ubc.ca","8080" , null, false);
+		Event event = new Event();
+		event.setThingId("picturenscan1");
+		Map<String,String> gameInfo = new HashMap<String, String>();
+	
 		System.out.println("On Activity Result");
 		if (resultCode == RESULT_OK)
 		{
@@ -361,8 +380,16 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 			{
 				System.out.println("QR value");
 				qr_upload=data.getStringExtra("qr_result");
+				player=data.getStringExtra("playernumber");
 				if (qr_upload != null && !qr_upload.equals("")) {
 					webView.loadUrl("javascript:gotQR('"+qr_upload+"');");
+			
+					gameInfo.put("type", "qrResult");
+					gameInfo.put("player", player);
+					gameInfo.put("value", qr_upload);
+					event.setInfo(gameInfo);
+					service.postEvent(STANDARD_MESSAGE,(ThingBrokerRequestListener) this, event, true);
+				
 				}
 				
 			}
@@ -382,6 +409,7 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 				System.out.println("Upload Dimension Test" + uploadDimensionsTest);
 				if (uploadDimensionsTest != null && !uploadDimensionsTest.equals("")){
 					webView.loadUrl("javascript:gotImage('"+uploadDimensionsTest+"');");
+					
 				}
 				System.out.println("uploadDimesnions passed over" );
 			}
@@ -422,14 +450,22 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 	}
 
 
-	private class SendAccelerometerData extends TimerTask {
+	private class SendAccelerometerData extends TimerTask implements ThingBrokerRequestListener {
 
 		@Override
 		public void run() {
 			String accelerometer_value = null;
 			accelerometer_value = "{ \"x\": \"" + linear_accel[0] + "\",\"y\": \"" + linear_accel[1] + "\", \"z\": \"" + linear_accel[2] + "\", \"player\": \"" + player + "\" }";
-//			JSONArray json_accelerometer_value = new JSONArray(Arrays.asList(linear_accel));
-//			accelerometer_value = json_accelerometer_value.toString();
+			//Sending Events
+
+			
+			EventService service = new EventServiceImpl("kimberly.magic.ubc.ca","8080" , null, false);
+			Event event = new Event();
+			event.setThingId("picturenscan1");
+			Map<String,String> gameInfo = new HashMap<String, String>();
+			
+
+			
 			System.out.println ("Accelerometer values are: " + accelerometer_value);
 			
 			if (linear_accel == null )
@@ -439,7 +475,22 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 			}
 			else{
 			webView.loadUrl("javascript:updateAccelData('"+accelerometer_value+"');");
+		
+			gameInfo.put("type", "accelData");
+			gameInfo.put("player", player);
+			gameInfo.put("x", Float.toString(linear_accel[0]));
+			gameInfo.put("y", Float.toString(linear_accel[1]));
+			gameInfo.put("z", Float.toString(linear_accel[2]));
+			event.setInfo(gameInfo);
+			service.postEvent(STANDARD_MESSAGE, this, event, true);
+		
+			
 			}
+		}
+
+		public void executeAfterRequest(int arg0, Object arg1, Exception arg2) {
+			// TODO Auto-generated method stub
+			
 		}
 		
 	}
@@ -466,5 +517,11 @@ public class HtmlContainerActivity extends Activity implements SensorEventListen
 		}
 		
 	}
+
+	public void executeAfterRequest(int serviceId, Object result, Exception ex) {
+		// TODO Auto-generated method stub
+		
+	}
+
 
 }

@@ -172,7 +172,9 @@ public class HtmlCallbackActivity extends Activity{
 			for (NameValuePair pair : parameters) {
 				if (pair.getName().equals("ret")) {
 					callbackUrl = pair.getValue();
-				}
+					}
+				else if (pair.getName().equals("player")) 
+					player_number = pair.getValue();				
 				// ignore other parameters as irrelevant for this mode
 			}	
 
