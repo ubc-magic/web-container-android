@@ -252,6 +252,7 @@ int string contents_phone 0x7f070025
 int string contents_sms 0x7f070026
 int string contents_text 0x7f070027
 int string default_note_text 0x7f070081
+int string default_url 0x7f070083
 int string dir_info 0x7f070002
 int string hello 0x7f07007f
 int string history_clear_text 0x7f070028
@@ -331,7 +332,11 @@ int string result_uri 0x7f07006f
 int string result_wifi 0x7f070070
 int string sbc_name 0x7f070071
 int string share_name 0x7f070072
+int string thing_broker_port 0x7f070085
+int string thing_broker_server 0x7f070084
+int string thing_broker_thing_name 0x7f070086
 int string title_about 0x7f070073
+int string uri_prefix 0x7f070082
 int string wa_name 0x7f070074
 int string wifi_changing_network 0x7f070075
 int string wifi_connect_failed 0x7f07007b

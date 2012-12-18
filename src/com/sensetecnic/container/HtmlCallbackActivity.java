@@ -61,7 +61,7 @@ import android.webkit.WebView;
 
 public class HtmlCallbackActivity extends Activity{ 
 
-	public static final String URI_PREFIX = "http://www.sinfulseven.net/coffeeshop/";
+	
 	public static final String URI_SEPARATOR = "?";
 	public static final String URI_APPLICATION_SEPARATOR = "&";
 	public static final String ABORT_CODE = "!ABORT";
@@ -122,7 +122,7 @@ public class HtmlCallbackActivity extends Activity{
 		accel_rate = 0;
 		player_number = "0";
 		
-
+		final String URI_PREFIX = getResources().getString(R.string.uri_prefix);
 		
 		Uri data = getIntent().getData(); 
 		if (data != null) { 
@@ -577,8 +577,6 @@ public class HtmlCallbackActivity extends Activity{
 			try {
 				String url = uploadPhotoUrl;
 				
-				
-				System.out.println("Photo Url Photo: " + uploadPhotoUrl);
 				MultipartEntity reqEntity = new MultipartEntity();  
 				
 				field = "userfile";
@@ -587,12 +585,10 @@ public class HtmlCallbackActivity extends Activity{
 				FileBody bin = new FileBody(photo); // "image/jpg");
 
 				
-				//System.out.println("player string: " + playerstring.toString());
 				reqEntity.addPart(field, bin);
 				System.out.println("assign field in bin");
 				reqEntity.addPart("player", new StringBody(player_number));
 
-				//System.out.println("trying to add player number");
 				//reqEntity.addPart("name", new StringBody(name));
 				//reqEntity.addPart("tag", new StringBody(tag));
 				

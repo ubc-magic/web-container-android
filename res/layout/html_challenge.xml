@@ -10,9 +10,10 @@
         android:id="@+id/webview"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-   	 android:screenOrientation="portrait"
+   	 	android:screenOrientation="portrait"
         android:configChanges="orientation|keyboard|keyboardHidden"
-        android:layout_weight="1"/>
+        android:layout_weight="1"
+        android:text="@string/uri_prefix"/>
 
     <ProgressBar
         android:id="@+id/pbLoading"

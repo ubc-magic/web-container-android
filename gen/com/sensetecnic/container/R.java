@@ -279,6 +279,7 @@ public final class R {
         public static final int contents_sms=0x7f070026;
         public static final int contents_text=0x7f070027;
         public static final int default_note_text=0x7f070081;
+        public static final int default_url=0x7f070083;
         public static final int dir_info=0x7f070002;
         public static final int hello=0x7f07007f;
         public static final int history_clear_text=0x7f070028;
@@ -358,7 +359,11 @@ public final class R {
         public static final int result_wifi=0x7f070070;
         public static final int sbc_name=0x7f070071;
         public static final int share_name=0x7f070072;
+        public static final int thing_broker_port=0x7f070085;
+        public static final int thing_broker_server=0x7f070084;
+        public static final int thing_broker_thing_name=0x7f070086;
         public static final int title_about=0x7f070073;
+        public static final int uri_prefix=0x7f070082;
         public static final int wa_name=0x7f070074;
         public static final int wifi_changing_network=0x7f070075;
         public static final int wifi_connect_failed=0x7f07007b;

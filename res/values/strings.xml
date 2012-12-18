@@ -5,5 +5,10 @@
     <string name="app_name">STS Web Container</string>
     <string name="write_to_tag">Write to Tag</string>
     <string name="default_note_text">Edit me!</string>
+    <string name="uri_prefix">http://www.sinfulseven.net/coffeeshop/</string>
+    <string name="default_url">http://sinfulseven.net/coffeeshop</string>
+    <string name="thing_broker_server">kimberly.magic.ubc.ca</string>
+    <string name="thing_broker_port">8080</string>
+    <string name="thing_broker_thing_name">picturenscan1</string>
 
 </resources>

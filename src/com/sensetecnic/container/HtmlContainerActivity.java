@@ -89,16 +89,13 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 	
 	
 	
-	private static final String OVERRIDE_PREFIX = "http://www.sinfulseven.net/coffeeshop/";
-	private static final String DEFAULT_URL = "http://sinfulseven.net/coffeeshop";
-	
-	
 
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
-		System.out.println(DEFAULT_URL);
-		System.out.println("-------------STARTING-------------");
+		
+		
+		String OVERRIDE_PREFIX = getString(R.string.uri_prefix);
 		
 		// Initialize Sensor management information 
 		sm = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -116,7 +113,9 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 
 			@Override
 			public boolean shouldOverrideUrlLoading(WebView view, String url) {
-				System.out.println("Test this url: " + url);
+				
+				String OVERRIDE_PREFIX = getString(R.string.uri_prefix);
+				
 				if (url.startsWith(OVERRIDE_PREFIX)) {
 					cancelAccelUpload();
 					System.out.println("Starting the override Prefix");
@@ -155,7 +154,6 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 
 		String url = getIntent().getStringExtra("url");
 		String result = getIntent().getStringExtra("result");
-		System.out.println ("Result for the common page is" + result);
 		
 		currentUrl = url;
 
@@ -176,7 +174,7 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 		} else {
 			// load default url
 			System.out.println("Webview loading: " + url);
-			webView.loadUrl(DEFAULT_URL);
+			webView.loadUrl(getString(R.string.default_url));
 		}
 
 	}
@@ -214,7 +212,7 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 		final EditText input = new EditText(this);
 		final LinearLayout layout = new LinearLayout(this);
 		final TextView instructions = new TextView(this);
-		input.setText("http://www.sinfulseven.net/coffeeshop");
+		input.setText(getString(R.string.default_url));
 		input.setInputType(InputType.TYPE_TEXT_VARIATION_URI);
 		layout.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
 		input.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT, 1f));
@@ -269,9 +267,9 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 		editor.putBoolean("quitChallenge", false);
 		editor.commit();
 
-		EventService service = new EventServiceImpl("kimberly.magic.ubc.ca","8080" , null, false);
+		EventService service = new EventServiceImpl(getString(R.string.thing_broker_server),getString(R.string.thing_broker_port) , null, false);
 		Event event = new Event();
-		event.setThingId("picturenscan1");
+		event.setThingId(getString(R.string.thing_broker_thing_name));
 		Map<String,String> gameInfo = new HashMap<String, String>();
 	
 		
@@ -281,7 +279,7 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 
 		else if (callbackUrl != null && !callbackUrl.equals("")) {
 			if (callbackUrl.equals(HtmlCallbackActivity.ABORT_CODE)) {
-				if (currentUrl == null || currentUrl.startsWith(DEFAULT_URL)) 
+				if (currentUrl == null || currentUrl.startsWith(getString(R.string.default_url))) 
 					finish();
 			}
 			else {
@@ -300,9 +298,6 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 			service.postEvent(STANDARD_MESSAGE, this, event, true);
 			
 		}
-//		else if (uploadDimensions != null && !uploadDimensions.equals("")){
-//			webView.loadUrl("javascript:gotImage('"+uploadDimensions+"');");
-//		}
 
 	}
 
@@ -359,12 +354,12 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 	protected void onActivityResult(int requestCode, int resultCode, Intent data)
 	{
 		
-		EventService service = new EventServiceImpl("kimberly.magic.ubc.ca","8080" , null, false);
+		EventService service = new EventServiceImpl(getString(R.string.thing_broker_server),getString(R.string.thing_broker_port) , null, false);
 		Event event = new Event();
-		event.setThingId("picturenscan1");
+		event.setThingId(getString(R.string.thing_broker_thing_name));
 		Map<String,String> gameInfo = new HashMap<String, String>();
-	
-		System.out.println("On Activity Result");
+
+		
 		if (resultCode == RESULT_OK)
 		{
 			if (data.getStringExtra("method").equals("nfc"))
@@ -414,7 +409,6 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 				System.out.println("uploadDimesnions passed over" );
 			}
 		}
-		System.out.println("Onactivityresult complete");
 	}
 
 	/**
@@ -459,9 +453,9 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 			//Sending Events
 
 			
-			EventService service = new EventServiceImpl("kimberly.magic.ubc.ca","8080" , null, false);
+			EventService service = new EventServiceImpl(getString(R.string.thing_broker_server),getString(R.string.thing_broker_port) , null, false);
 			Event event = new Event();
-			event.setThingId("picturenscan1");
+			event.setThingId(getString(R.string.thing_broker_thing_name));
 			Map<String,String> gameInfo = new HashMap<String, String>();
 			
 
@@ -522,6 +516,7 @@ public class HtmlContainerActivity extends Activity implements ThingBrokerReques
 		// TODO Auto-generated method stub
 		
 	}
+
 
 
 }
